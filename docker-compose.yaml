@@ -7,4 +7,4 @@ services:
       - ./logs:/app/logs
       - ./static:/app/static
     ports:
-      - 7004:10088
+      - 10088:10088
