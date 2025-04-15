@@ -1,6 +1,6 @@
 log:
   path: ./logs/default.log
-  level: debug
+  level: info
 
 server:
   port: 10088
