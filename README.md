@@ -40,12 +40,12 @@ go run .
 
 ## API接口
 
-- `/game` - 启动一场新 bp (GET)
-- `/game/{gameId}` - 进入指定 bp 场次 (GET)
-- `/game/{gameId}/status` - 获取当前游戏状态
-- `/game/{gameId}/entries` - 获取可选角色列表
-- `/game/{gameId}/result` - 获取游戏结果
-- `/game/{gameId}` - 选择角色 (POST)
+- `/bp` - 启动一场新 bp (GET)
+- `/bp/{gameId}` - 进入指定 bp 场次 (GET)
+- `/bp/{gameId}/status` - 获取当前游戏状态
+- `/bp/{gameId}/entries` - 获取可选角色列表
+- `/bp/{gameId}/result` - 获取游戏结果
+- `/bp/{gameId}` - 选择角色 (POST)
 
 ## 项目结构
 
