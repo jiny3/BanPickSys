@@ -1,0 +1,4 @@
+logs
+**/*.log
+frontend/node_modules
+bin
