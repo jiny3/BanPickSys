@@ -12,11 +12,11 @@ import (
 
 func SetupRouter(r *gin.Engine) {
 	r.LoadHTMLGlob("static/*.html")
-	r.Static("/static", "./static")
+	r.Static("/bp/static", "./static")
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
 	})
-	r.GET("/game", func(c *gin.Context) {
+	r.GET("/bp", func(c *gin.Context) {
 		// 启动一次banpick
 		playNum := 2
 		players := make([]model.Player, playNum)
@@ -28,39 +28,39 @@ func SetupRouter(r *gin.Engine) {
 				Picked: []model.Entry{},
 			}
 		}
-		gameID, err := service.NewGame("豹豹碰碰大作战", players)
+		bpID, err := service.NewGame("豹豹碰碰大作战", players)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.Redirect(http.StatusFound, fmt.Sprintf("/game/%d", gameID))
+		c.Redirect(http.StatusFound, fmt.Sprintf("/bp/%d", bpID))
 	})
-	r.GET("/game/:id", func(c *gin.Context) {
+	r.GET("/bp/:id", func(c *gin.Context) {
 		// 获取游戏状态
 		id := c.Param("id")
-		gameID, err := strconv.ParseInt(id, 10, 64)
+		bpID, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid game ID"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
 			return
 		}
-		_, err = service.GetGame(gameID)
+		_, err = service.GetGame(bpID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		c.HTML(http.StatusOK, "index.html", gin.H{
-			"game": fmt.Sprintf("%d", gameID),
+			"bp": fmt.Sprintf("%d", bpID),
 		})
 	})
-	r.POST("/game/:id", func(c *gin.Context) {
+	r.POST("/bp/:id", func(c *gin.Context) {
 		// 玩家操作
 		id := c.Param("id")
-		gameID, err := strconv.ParseInt(id, 10, 64)
+		bpID, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid game ID"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
 			return
 		}
-		_, err = service.GetGame(gameID)
+		_, err = service.GetGame(bpID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -80,52 +80,52 @@ func SetupRouter(r *gin.Engine) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid entry"})
 			return
 		}
-		err = service.SendEvent(gameID, req.PlayerID, req.EntryID)
+		err = service.SendEvent(bpID, req.PlayerID, req.EntryID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"msg": "ok"})
 	})
-	r.GET("/game/:id/status", func(c *gin.Context) {
+	r.GET("/bp/:id/status", func(c *gin.Context) {
 		id := c.Param("id")
-		gameID, err := strconv.ParseInt(id, 10, 64)
+		bpID, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid game ID"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
 			return
 		}
-		game, err := service.GetGame(gameID)
+		bp, err := service.GetGame(bpID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{
-			"game": game,
+			"bp": bp,
 		})
 	})
-	r.GET("/game/:id/entries", func(c *gin.Context) {
+	r.GET("/bp/:id/entries", func(c *gin.Context) {
 		id := c.Param("id")
-		gameID, err := strconv.ParseInt(id, 10, 64)
+		bpID, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid game ID"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
 			return
 		}
-		game, err := service.GetGame(gameID)
+		bp, err := service.GetGame(bpID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"entries": game.Entries})
+		c.JSON(http.StatusOK, gin.H{"entries": bp.Entries})
 	})
-	r.GET("/game/:id/result", func(c *gin.Context) {
+	r.GET("/bp/:id/result", func(c *gin.Context) {
 		// 获取游戏结果
 		id := c.Param("id")
-		gameID, err := strconv.ParseInt(id, 10, 64)
+		bpID, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid game ID"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
 			return
 		}
-		res, err := service.GetResult(gameID)
+		res, err := service.GetResult(bpID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
