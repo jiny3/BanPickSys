@@ -33,7 +33,7 @@ func SetupRouter(r *gin.Engine) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("/game/%d", gameID))
+		c.Redirect(http.StatusFound, fmt.Sprintf("/game/%d", gameID))
 	})
 	r.GET("/game/:id", func(c *gin.Context) {
 		// 获取游戏状态
@@ -43,13 +43,13 @@ func SetupRouter(r *gin.Engine) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid game ID"})
 			return
 		}
-		game, err := service.GetGame(gameID)
+		_, err = service.GetGame(gameID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		c.HTML(http.StatusOK, "index.html", gin.H{
-			"game": game.ID,
+			"game": fmt.Sprintf("%d", gameID),
 		})
 	})
 	r.POST("/game/:id", func(c *gin.Context) {
