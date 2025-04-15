@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -13,7 +14,7 @@ func SetupRouter(r *gin.Engine) {
 	r.LoadHTMLGlob("static/*.html")
 	r.Static("/static", "./static")
 	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{"message": "pong"})
+		c.JSON(http.StatusOK, gin.H{"message": "pong"})
 	})
 	r.GET("/game", func(c *gin.Context) {
 		// 启动一次banpick
@@ -29,26 +30,25 @@ func SetupRouter(r *gin.Engine) {
 		}
 		gameID, err := service.NewGame("豹豹碰碰大作战", players)
 		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		// 让前端定向到game/gameID
-		c.Redirect(302, fmt.Sprintf("/game/%d", gameID))
+		c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("/game/%d", gameID))
 	})
 	r.GET("/game/:id", func(c *gin.Context) {
 		// 获取游戏状态
 		id := c.Param("id")
 		gameID, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
-			c.JSON(400, gin.H{"error": "invalid game ID"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid game ID"})
 			return
 		}
 		game, err := service.GetGame(gameID)
 		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.HTML(200, "index.html", gin.H{
+		c.HTML(http.StatusOK, "index.html", gin.H{
 			"game": game.ID,
 		})
 	})
@@ -57,12 +57,12 @@ func SetupRouter(r *gin.Engine) {
 		id := c.Param("id")
 		gameID, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
-			c.JSON(400, gin.H{"error": "invalid game ID"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid game ID"})
 			return
 		}
 		_, err = service.GetGame(gameID)
 		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		var req struct {
@@ -77,29 +77,29 @@ func SetupRouter(r *gin.Engine) {
 		// }
 		err = c.ShouldBindJSON(&req)
 		if err != nil {
-			c.JSON(400, gin.H{"error": "invalid entry"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid entry"})
 			return
 		}
 		err = service.SendEvent(gameID, req.PlayerID, req.EntryID)
 		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(200, gin.H{"msg": "ok"})
+		c.JSON(http.StatusOK, gin.H{"msg": "ok"})
 	})
 	r.GET("/game/:id/status", func(c *gin.Context) {
 		id := c.Param("id")
 		gameID, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
-			c.JSON(400, gin.H{"error": "invalid game ID"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid game ID"})
 			return
 		}
 		game, err := service.GetGame(gameID)
 		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(200, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"game": game,
 		})
 	})
@@ -107,29 +107,29 @@ func SetupRouter(r *gin.Engine) {
 		id := c.Param("id")
 		gameID, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
-			c.JSON(400, gin.H{"error": "invalid game ID"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid game ID"})
 			return
 		}
 		game, err := service.GetGame(gameID)
 		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(200, gin.H{"entries": game.Entries})
+		c.JSON(http.StatusOK, gin.H{"entries": game.Entries})
 	})
 	r.GET("/game/:id/result", func(c *gin.Context) {
 		// 获取游戏结果
 		id := c.Param("id")
 		gameID, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
-			c.JSON(400, gin.H{"error": "invalid game ID"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid game ID"})
 			return
 		}
 		res, err := service.GetResult(gameID)
 		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(200, gin.H{"res": res})
+		c.JSON(http.StatusOK, gin.H{"res": res})
 	})
 }
