@@ -1,0 +1,10 @@
+services:
+  banpicksys:
+    image: jiny14/bpsys:latest
+    container_name: banpicksys
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+      - ./static:/app/static
+    ports:
+      - 7004:10088
