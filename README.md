@@ -42,9 +42,9 @@ go run .
 
 - `/bp` - 启动一场新 bp (GET)
 - `/bp/{bpID}` - 进入指定 bp 场次 (GET)
-- `/bp/{bpID}/status` - 获取当前游戏状态
+- `/bp/{bpID}/status` - 获取当前bp状态
 - `/bp/{bpID}/entries` - 获取可选角色列表
-- `/bp/{bpID}/result` - 获取游戏结果
+- `/bp/{bpID}/result` - 获取bp结果
 - `/bp/{bpID}` - 选择角色 (POST)
 
 ## 项目结构
