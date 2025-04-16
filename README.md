@@ -99,7 +99,7 @@ BanPickSys
 - 队伍结果展示，包括已禁用和已选择的角色
 - WebSocket通信，保证游戏状态实时同步
 
-详细信息请参考 [前端README](./static/README.md)
+详细信息请参考 [前端README](https://github.com/jiny3/BanPickSys-web/blob/main/README.md)
 
 ## 贡献指南
 
