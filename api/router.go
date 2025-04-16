@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jiny3/BanPickSys/model"
 	"github.com/jiny3/BanPickSys/pkg"
 	"github.com/jiny3/BanPickSys/service"
 )
@@ -18,18 +17,13 @@ func SetupRouter(r *gin.Engine) {
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
 	})
 	r.GET("/bp", func(c *gin.Context) {
-		// 启动一次banpick
-		playNum := 2
-		players := make([]model.Player, playNum)
-		for i := range playNum {
-			players[i] = model.Player{
-				ID:     int64(i + 1),
-				Name:   fmt.Sprintf("玩家%d", i+1),
-				Banned: []model.Entry{},
-				Picked: []model.Entry{},
-			}
+		// 读取 game name
+		game := c.Query("game")
+		if game == "" {
+			game = "豹豹碰碰大作战"
 		}
-		bpID, err := service.NewGame("豹豹碰碰大作战", players)
+		// 启动 banpick
+		bpID, err := service.NewGame(game, GameHandler[game])
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -37,7 +31,6 @@ func SetupRouter(r *gin.Engine) {
 		c.Redirect(http.StatusFound, fmt.Sprintf("/bp/%d", bpID))
 	})
 	r.GET("/bp/:id", func(c *gin.Context) {
-		// 获取游戏状态
 		id := c.Param("id")
 		bpID, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
@@ -53,8 +46,8 @@ func SetupRouter(r *gin.Engine) {
 			"bp": fmt.Sprintf("%d", bpID),
 		})
 	})
+	// TODO: 改为通过ws交互
 	r.POST("/bp/:id", func(c *gin.Context) {
-		// 玩家操作
 		id := c.Param("id")
 		bpID, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {

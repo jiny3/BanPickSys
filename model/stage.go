@@ -60,7 +60,3 @@ func (s *Stage) Recv(en *Entry) {
 func (s *Stage) Wakeup() {
 	s.wakeup <- struct{}{}
 }
-
-func (s Stage) GetUntilTime() time.Duration {
-	return time.Until(s.Start.Add(s.Duration))
-}
