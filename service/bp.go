@@ -4,33 +4,46 @@ import (
 	"fmt"
 
 	"github.com/jiny3/BanPickSys/model"
+	"github.com/sirupsen/logrus"
 )
 
-var Games = make(map[int64]*model.Game)
+var BPs = make(map[int64]*model.BP)
 
-type GameInitFunc func(game *model.Game) error
+type GameInitFunc func(game *model.BP) error
 
-func NewGame(name string, f GameInitFunc) (int64, error) {
-	game := model.NewGame(name, GetEntries(name))
+func NewBP(name string, f GameInitFunc) (int64, error) {
+	game := model.NewBP(name, model.GetEntries(name))
+	if f == nil {
+		logrus.Errorf("game handler is nil")
+		return -1, fmt.Errorf("miss function")
+	}
 	err := f(&game)
 	if err != nil {
 		return -1, fmt.Errorf("game handler error: %w", err)
 	}
-	Games[game.ID] = &game
+	BPs[game.ID] = &game
 	go RunState(game.Stage0, &game)
 	return game.ID, nil
 }
 
-func GetGame(id int64) (*model.Game, error) {
-	game, ok := Games[id]
+func GetBP(id int64) (*model.BP, error) {
+	game, ok := BPs[id]
 	if !ok {
 		return nil, fmt.Errorf("game not found")
 	}
 	return game, nil
 }
 
+func GetEntries(id int64) ([]model.Entry, error) {
+	game, err := GetBP(id)
+	if err != nil {
+		return nil, err
+	}
+	return game.Entries, nil
+}
+
 func GetResult(id int64) (map[string]*model.Player, error) {
-	game, err := GetGame(id)
+	game, err := GetBP(id)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +57,7 @@ func GetResult(id int64) (map[string]*model.Player, error) {
 }
 
 func SendEvent(gameID, playerID, entryID int64) error {
-	game, err := GetGame(gameID)
+	game, err := GetBP(gameID)
 	if err != nil {
 		return err
 	}

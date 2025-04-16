@@ -24,7 +24,7 @@ func SetupRouter(r *gin.Engine) {
 			gameName = "豹豹碰碰大作战"
 		}
 		// 启动 banpick
-		bpID, err := service.NewGame(gameName, game.Handlers[gameName])
+		bpID, err := service.NewBP(gameName, game.Handlers[gameName])
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -38,7 +38,7 @@ func SetupRouter(r *gin.Engine) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
 			return
 		}
-		_, err = service.GetGame(bpID)
+		_, err = service.GetBP(bpID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -47,7 +47,6 @@ func SetupRouter(r *gin.Engine) {
 			"bp": fmt.Sprintf("%d", bpID),
 		})
 	})
-	// TODO: 改为通过ws交互
 	r.POST("/bp/:id", func(c *gin.Context) {
 		id := c.Param("id")
 		bpID, err := strconv.ParseInt(id, 10, 64)
@@ -55,7 +54,41 @@ func SetupRouter(r *gin.Engine) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
 			return
 		}
-		_, err = service.GetGame(bpID)
+		_, err = service.GetBP(bpID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		var req struct {
+			EntryID  int64 `json:"entry_id"`
+			PlayerID int64 `json:"player_id"`
+		}
+
+		// Example JSON:
+		// {
+		//   "entry_id": 123,
+		//   "player_id": 456
+		// }
+		err = c.ShouldBindJSON(&req)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid entry"})
+			return
+		}
+		err = service.SendEvent(bpID, req.PlayerID, req.EntryID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"msg": "ok"})
+	})
+	r.POST("/bp/:id/join", func(c *gin.Context) {
+		id := c.Param("id")
+		bpID, err := strconv.ParseInt(id, 10, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
+			return
+		}
+		_, err = service.GetBP(bpID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -89,7 +122,7 @@ func SetupRouter(r *gin.Engine) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
 			return
 		}
-		bp, err := service.GetGame(bpID)
+		bp, err := service.GetBP(bpID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -105,12 +138,12 @@ func SetupRouter(r *gin.Engine) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
 			return
 		}
-		bp, err := service.GetGame(bpID)
+		res, err := service.GetEntries(bpID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"entries": bp.Entries})
+		c.JSON(http.StatusOK, gin.H{"res": res})
 	})
 	r.GET("/bp/:id/result", func(c *gin.Context) {
 		// 获取游戏结果
@@ -127,6 +160,7 @@ func SetupRouter(r *gin.Engine) {
 		}
 		c.JSON(http.StatusOK, gin.H{"res": res})
 	})
+
 	r.GET("/bp/:id/ws", func(c *gin.Context) {
 		id := c.Param("id")
 		bpID, err := strconv.ParseInt(id, 10, 64)

@@ -10,43 +10,43 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Game struct {
+type BP struct {
 	ID        int64              `json:"id"`
 	Stage0    *Stage             `json:"stage0"`
 	Entries   []Entry            `json:"entries"`
 	Players   map[string]*Player `json:"players"`
 	PlayerCap int                `json:"player_cap"`
 
-	Send       []chan *Game `json:"-"`
+	Send       []chan *BP `json:"-"`
 	stageIndex int64
 	mu         sync.Mutex
 }
 
-func NewGame(name string, entries []Entry) Game {
+func NewBP(name string, entries []Entry) BP {
 	gid := pkg.GenerateUUID(name)
-	return Game{
+	return BP{
 		ID: gid,
 		Stage0: NewStage(0, "初始化", name, START, time.Second*3, func(context.Context, chan any) {
 			logrus.Debug("游戏初始化")
 		}),
 		Entries: entries,
 		Players: make(map[string]*Player),
-		Send:    []chan *Game{},
+		Send:    []chan *BP{},
 	}
 }
 
-func (g *Game) NewStageId() int64 {
+func (g *BP) NewStageId() int64 {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.stageIndex++
 	return g.stageIndex
 }
 
-func (g *Game) SetStage0(s *Stage) {
+func (g *BP) SetStage0(s *Stage) {
 	g.Stage0 = s
 }
 
-func (g *Game) Join(player Player, role string) error {
+func (g *BP) Join(player Player, role string) error {
 	if len(g.Players) >= g.PlayerCap {
 		return fmt.Errorf("玩家人数已满")
 	}
@@ -59,7 +59,7 @@ func (g *Game) Join(player Player, role string) error {
 	return nil
 }
 
-func (g *Game) Leave(p Player) error {
+func (g *BP) Leave(p Player) error {
 	for role, player := range g.Players {
 		if player.ID == p.ID {
 			delete(g.Players, role)
@@ -69,6 +69,6 @@ func (g *Game) Leave(p Player) error {
 	return fmt.Errorf("玩家不存在")
 }
 
-func (g *Game) Result() map[string]*Player {
+func (g *BP) Result() map[string]*Player {
 	return g.Players
 }

@@ -10,7 +10,7 @@ func LinkStages(cur *model.Stage, prevs ...*model.Stage) {
 	cur.Link(prevs...)
 }
 
-func RunState(s *model.Stage, game *model.Game) {
+func RunState(s *model.Stage, game *model.BP) {
 	// wait for previous stages
 	s.Waiting()
 

@@ -15,7 +15,7 @@ var Handlers = map[string]service.GameInitFunc{
 }
 
 // 豹豹碰碰大作战 stages 编排
-func baobaoStages(game *model.Game) error {
+func baobaoStages(game *model.BP) error {
 	// 确定 player 人数
 	game.PlayerCap = 2
 
@@ -77,7 +77,7 @@ func baobaoStages(game *model.Game) error {
 	endHandler := func(ctx context.Context, ch chan any) {
 		logrus.Debug("游戏结束")
 		time.Sleep(time.Minute * 10)
-		delete(service.Games, game.ID)
+		delete(service.BPs, game.ID)
 	}
 	// blue ban 1
 	cur := model.NewStage(game.NewStageId(), "蓝方禁用1", "蓝方禁用1次", "blue", banDuration, blueBanHandler)
