@@ -13,168 +13,211 @@ import (
 
 func SetupRouter(r *gin.Engine) {
 	r.LoadHTMLGlob("static/*.html")
-	r.Static("/bp/static", "./static")
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
 	})
-	r.GET("/bp", func(c *gin.Context) {
-		// 读取 gameName name
-		gameName := c.Query("game")
-		if gameName == "" {
-			gameName = "豹豹碰碰大作战"
-		}
-		// 启动 banpick
-		bpID, err := service.NewBP(gameName, game.Handlers[gameName])
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.Redirect(http.StatusFound, fmt.Sprintf("/bp/%d", bpID))
-	})
-	r.GET("/bp/:id", func(c *gin.Context) {
-		id := c.Param("id")
-		bpID, err := strconv.ParseInt(id, 10, 64)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
-			return
-		}
-		_, err = service.GetBP(bpID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.HTML(http.StatusOK, "index.html", gin.H{
-			"bp": fmt.Sprintf("%d", bpID),
+
+	bpGroup := r.Group("/bp")
+	{
+		bpGroup.Static("/static", "./static")
+		bpGroup.GET("/", func(c *gin.Context) {
+			// 读取 gameName name
+			gameName := c.Query("game")
+			if gameName == "" {
+				gameName = "豹豹碰碰大作战"
+			}
+			// 启动 banpick
+			bpID, err := service.NewBP(gameName, game.Handlers[gameName])
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.Redirect(http.StatusFound, fmt.Sprintf("/bp/%d", bpID))
 		})
-	})
-	r.POST("/bp/:id", func(c *gin.Context) {
-		id := c.Param("id")
-		bpID, err := strconv.ParseInt(id, 10, 64)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
-			return
-		}
-		_, err = service.GetBP(bpID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		var req struct {
-			EntryID  int64 `json:"entry_id"`
-			PlayerID int64 `json:"player_id"`
-		}
 
-		// Example JSON:
-		// {
-		//   "entry_id": 123,
-		//   "player_id": 456
-		// }
-		err = c.ShouldBindJSON(&req)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid entry"})
-			return
-		}
-		err = service.SendEvent(bpID, req.PlayerID, req.EntryID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"msg": "ok"})
-	})
-	r.POST("/bp/:id/join", func(c *gin.Context) {
-		id := c.Param("id")
-		bpID, err := strconv.ParseInt(id, 10, 64)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
-			return
-		}
-		_, err = service.GetBP(bpID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		var req struct {
-			EntryID  int64 `json:"entry_id"`
-			PlayerID int64 `json:"player_id"`
-		}
+		bpIdGroup := bpGroup.Group("/:id")
+		{
+			bpIdGroup.GET("/", func(c *gin.Context) {
+				id := c.Param("id")
+				bpID, err := strconv.ParseInt(id, 10, 64)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
+					return
+				}
+				_, err = service.GetBP(bpID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+				c.HTML(http.StatusOK, "index.html", gin.H{
+					"id": fmt.Sprintf("%d", bpID),
+				})
+			})
+			bpIdGroup.POST("/submit", func(c *gin.Context) {
+				id := c.Param("id")
+				bpID, err := strconv.ParseInt(id, 10, 64)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
+					return
+				}
+				_, err = service.GetBP(bpID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
 
-		// Example JSON:
-		// {
-		//   "entry_id": 123,
-		//   "player_id": 456
-		// }
-		err = c.ShouldBindJSON(&req)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid entry"})
-			return
-		}
-		err = service.SendEvent(bpID, req.PlayerID, req.EntryID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"msg": "ok"})
-	})
-	r.GET("/bp/:id/status", func(c *gin.Context) {
-		id := c.Param("id")
-		bpID, err := strconv.ParseInt(id, 10, 64)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
-			return
-		}
-		bp, err := service.GetBP(bpID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"bp": bp,
-		})
-	})
-	r.GET("/bp/:id/entries", func(c *gin.Context) {
-		id := c.Param("id")
-		bpID, err := strconv.ParseInt(id, 10, 64)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
-			return
-		}
-		res, err := service.GetEntries(bpID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"res": res})
-	})
-	r.GET("/bp/:id/result", func(c *gin.Context) {
-		// 获取游戏结果
-		id := c.Param("id")
-		bpID, err := strconv.ParseInt(id, 10, 64)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
-			return
-		}
-		res, err := service.GetResult(bpID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"res": res})
-	})
+				var req struct {
+					EntryID  string `json:"entry_id"`
+					PlayerID string `json:"player_id"`
+				}
+				err = c.ShouldBindJSON(&req)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid entry"})
+					return
+				}
+				eid, err := strconv.ParseInt(req.EntryID, 10, 64)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid entry"})
+					return
+				}
+				pid, err := strconv.ParseInt(req.PlayerID, 10, 64)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid player"})
+					return
+				}
+				err = service.SendEvent(bpID, pid, eid)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+				c.JSON(http.StatusOK, gin.H{"msg": "ok"})
+			})
+			bpIdGroup.POST("/join", func(c *gin.Context) {
+				id := c.Param("id")
+				bpID, err := strconv.ParseInt(id, 10, 64)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
+					return
+				}
+				_, err = service.GetBP(bpID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+				var req struct {
+					PlayerID string `json:"id"`
+					Role     string `json:"role"`
+				}
+				err = c.ShouldBindJSON(&req)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid entry"})
+					return
+				}
+				pid, err := strconv.ParseInt(req.PlayerID, 10, 64)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid player"})
+					return
+				}
+				err = service.Join(bpID, pid, req.Role)
+				if err != nil {
+					c.JSON(http.StatusAlreadyReported, gin.H{"error": err.Error()})
+					return
+				}
+				c.JSON(http.StatusOK, gin.H{"msg": "ok"})
+			})
+			bpIdGroup.POST("/leave", func(c *gin.Context) {
+				id := c.Param("id")
+				bpID, err := strconv.ParseInt(id, 10, 64)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
+					return
+				}
+				_, err = service.GetBP(bpID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+				var req struct {
+					PlayerID string `json:"id"`
+				}
+				err = c.ShouldBindJSON(&req)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid entry"})
+					return
+				}
+				pid, err := strconv.ParseInt(req.PlayerID, 10, 64)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid player"})
+					return
+				}
+				err = service.Leave(bpID, pid)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+				c.JSON(http.StatusOK, gin.H{"msg": "ok"})
+			})
+			bpIdGroup.GET("/status", func(c *gin.Context) {
+				id := c.Param("id")
+				bpID, err := strconv.ParseInt(id, 10, 64)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
+					return
+				}
+				bp, err := service.GetBP(bpID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+				c.JSON(http.StatusOK, gin.H{
+					"res": bp,
+				})
+			})
+			bpIdGroup.GET("/entries", func(c *gin.Context) {
+				id := c.Param("id")
+				bpID, err := strconv.ParseInt(id, 10, 64)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
+					return
+				}
+				res, err := service.GetEntries(bpID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+				c.JSON(http.StatusOK, gin.H{"res": res})
+			})
+			bpIdGroup.GET("/result", func(c *gin.Context) {
+				// 获取游戏结果
+				id := c.Param("id")
+				bpID, err := strconv.ParseInt(id, 10, 64)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
+					return
+				}
+				res, err := service.GetResult(bpID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+				c.JSON(http.StatusOK, gin.H{"res": res})
+			})
+			bpIdGroup.GET("/ws", func(c *gin.Context) {
+				id := c.Param("id")
+				bpID, err := strconv.ParseInt(id, 10, 64)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
+					return
+				}
+				wsConn, err := pkg.WsUpgrade.Upgrade(c.Writer, c.Request, nil)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+				defer wsConn.Close()
 
-	r.GET("/bp/:id/ws", func(c *gin.Context) {
-		id := c.Param("id")
-		bpID, err := strconv.ParseInt(id, 10, 64)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
-			return
+				service.WsHandler(wsConn, bpID)
+			})
 		}
-		wsConn, err := pkg.WsUpgrade.Upgrade(c.Writer, c.Request, nil)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		defer wsConn.Close()
-
-		service.WsHandler(wsConn, bpID)
-	})
+	}
 }
