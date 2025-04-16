@@ -1,34 +1,46 @@
 package model
 
-import "time"
+import (
+	"context"
+	"time"
+)
+
+const (
+	// 角色
+	START = "start" // 初始化阶段
+	END   = "end"   // 结束阶段
+)
 
 type Stage struct {
 	ID          int64         `json:"id"`
 	Name        string        `json:"name"`
 	Description string        `json:"description"`
-	Player0     *Player       `json:"available_player"`
+	Role        string        `json:"role"`
 	Duration    time.Duration `json:"duration"`
 	Start       time.Time     `json:"start"`
 
 	Nexts          []*Stage `json:"-"`
 	WaitingCounter int64    `json:"-"`
-	handler        func(chan struct{}, chan *Entry)
-	recv           chan *Entry
+	handler        StageHandler
+	recv           chan any
 	previous       []*Stage
 	wakeup         chan struct{}
 }
 
-func NewStage(id int64, name, description string, Player0 *Player, duration time.Duration, handler func(chan struct{}, chan *Entry)) *Stage {
+// 阶段处理函数, ctx用于超时退出等, recv用于接收消息
+type StageHandler = func(ctx context.Context, recv chan any)
+
+func NewStage(id int64, name, description string, role string, duration time.Duration, handler StageHandler) *Stage {
 	return &Stage{
 		ID:          id,
 		Name:        name,
 		Description: description,
-		Player0:     Player0,
+		Role:        role,
 		Duration:    duration,
 
 		Nexts:    []*Stage{},
 		handler:  handler,
-		recv:     make(chan *Entry),
+		recv:     make(chan any),
 		previous: []*Stage{},
 		wakeup:   make(chan struct{}, 10),
 	}
@@ -48,9 +60,10 @@ func (s *Stage) Waiting() {
 	}
 }
 
-func (s *Stage) Handle(done chan struct{}) {
+func (s *Stage) Handle(ctx context.Context, cancel context.CancelFunc) {
+	defer cancel()
 	s.Start = time.Now()
-	go s.handler(done, s.recv)
+	s.handler(ctx, s.recv)
 }
 
 func (s *Stage) Recv(en *Entry) {

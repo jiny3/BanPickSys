@@ -1,7 +1,7 @@
 package service
 
 import (
-	"time"
+	"context"
 
 	"github.com/jiny3/BanPickSys/model"
 )
@@ -16,17 +16,14 @@ func RunState(s *model.Stage, game *model.Game) {
 
 	// startup with timer
 	game.SetStage0(s)
-	done := make(chan struct{})
-	defer close(done)
+	ctx, cancel := context.WithTimeout(context.Background(), s.Duration)
+	defer cancel()
 
-	s.Handle(done)
+	// send stage change signal to all channels
 	for _, s := range game.Send {
 		s <- game
 	}
-	select {
-	case <-done:
-	case <-time.After(time.Until(s.Start.Add(s.Duration))):
-	}
+	s.Handle(ctx, cancel)
 
 	// wakeup next stages
 	for _, next := range s.Nexts {
@@ -35,5 +32,4 @@ func RunState(s *model.Stage, game *model.Game) {
 		}
 		next.Wakeup()
 	}
-	done <- struct{}{}
 }

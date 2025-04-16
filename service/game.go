@@ -29,7 +29,7 @@ func GetGame(id int64) (*model.Game, error) {
 	return game, nil
 }
 
-func GetResult(id int64) ([]model.Player, error) {
+func GetResult(id int64) (map[string]*model.Player, error) {
 	game, err := GetGame(id)
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func GetResult(id int64) ([]model.Player, error) {
 	if game.Stage0.ID == 0 {
 		return nil, fmt.Errorf("game[%d] not started", id)
 	}
-	if game.Stage0.Player0.ID != 0 {
+	if game.Stage0.Role != model.END {
 		return nil, fmt.Errorf("game[%d] not finished", id)
 	}
 	return game.Result(), nil
@@ -51,7 +51,8 @@ func SendEvent(gameID, playerID, entryID int64) error {
 	if game.Stage0.ID == 0 {
 		return fmt.Errorf("game[%d] not started", gameID)
 	}
-	if game.Stage0.Player0.ID != playerID {
+	// TODO: 这里需要判断是否是当前玩家
+	if game.Stage0.Role == "" {
 		return fmt.Errorf("player[%d] not available", playerID)
 	}
 	for i := range game.Entries {
