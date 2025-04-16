@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jiny3/BanPickSys/model"
+	"github.com/jiny3/BanPickSys/pkg"
 	"github.com/jiny3/BanPickSys/service"
 )
 
@@ -131,5 +132,21 @@ func SetupRouter(r *gin.Engine) {
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"res": res})
+	})
+	r.GET("/bp/:id/ws", func(c *gin.Context) {
+		id := c.Param("id")
+		bpID, err := strconv.ParseInt(id, 10, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid bp ID"})
+			return
+		}
+		wsConn, err := pkg.WsUpgrade.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer wsConn.Close()
+
+		service.WsHandler(wsConn, bpID)
 	})
 }
