@@ -24,13 +24,23 @@ func baobaoStages(game *model.BP) error {
 	pickDuration := time.Minute * 1
 
 	// 确定每个阶段的处理函数
+	waitPlayerHandler := func(ctx context.Context, ch chan any) {
+		logrus.Debug("等待玩家加入")
+		for game.PlayerCap > len(game.Players) {
+			time.Sleep(time.Second * 1)
+		}
+		logrus.Debug("玩家加入完成")
+	}
 	blueBanHandler := func(ctx context.Context, ch chan any) {
 		logrus.Debug("蓝方禁用开始")
 		select {
 		case <-ctx.Done():
 			logrus.Debug("蓝方禁用结束")
 		case en := <-ch:
-			game.Players["blue"].Ban(en.(*model.Entry))
+			if game.Players["blue"] != nil {
+				game.Players["blue"].Ban(en.(*model.Entry))
+				game.Results["blue"] = *game.Players["blue"]
+			}
 			logrus.Debug("蓝方禁用", *(en.(*model.Entry)))
 		}
 	}
@@ -40,7 +50,10 @@ func baobaoStages(game *model.BP) error {
 		case <-ctx.Done():
 			logrus.Debug("红方禁用结束")
 		case en := <-ch:
-			game.Players["red"].Ban(en.(*model.Entry))
+			if game.Players["red"] != nil {
+				game.Players["red"].Ban(en.(*model.Entry))
+				game.Results["red"] = *game.Players["red"]
+			}
 			logrus.Debug("红方禁用", *(en.(*model.Entry)))
 		}
 	}
@@ -49,13 +62,17 @@ func baobaoStages(game *model.BP) error {
 		select {
 		case <-ctx.Done():
 			for i := range game.Entries {
-				if !game.Entries[i].Banned && !game.Entries[i].Picked {
+				if !game.Entries[i].Banned && !game.Entries[i].Picked && game.Players["blue"] != nil {
 					game.Players["blue"].Pick(&game.Entries[i])
+					game.Results["blue"] = *game.Players["blue"]
 					break
 				}
 			}
 		case en := <-ch:
-			game.Players["blue"].Pick(en.(*model.Entry))
+			if game.Players["blue"] != nil {
+				game.Players["blue"].Pick(en.(*model.Entry))
+				game.Results["blue"] = *game.Players["blue"]
+			}
 			logrus.Debug("蓝方选人", *en.(*model.Entry))
 		}
 	}
@@ -64,13 +81,17 @@ func baobaoStages(game *model.BP) error {
 		select {
 		case <-ctx.Done():
 			for i := range game.Entries {
-				if !game.Entries[i].Banned && !game.Entries[i].Picked {
+				if !game.Entries[i].Banned && !game.Entries[i].Picked && game.Players["red"] != nil {
 					game.Players["red"].Pick(&game.Entries[i])
+					game.Results["red"] = *game.Players["red"]
 					break
 				}
 			}
 		case en := <-ch:
-			game.Players["red"].Pick(en.(*model.Entry))
+			if game.Players["red"] != nil {
+				game.Players["red"].Pick(en.(*model.Entry))
+				game.Results["red"] = *game.Players["red"]
+			}
 			logrus.Debug("红方选人", *(en.(*model.Entry)))
 		}
 	}
@@ -79,11 +100,15 @@ func baobaoStages(game *model.BP) error {
 		time.Sleep(time.Minute * 10)
 		delete(service.BPs, game.ID)
 	}
-	// blue ban 1
-	cur := model.NewStage(game.NewStageId(), "蓝方禁用1", "蓝方禁用1次", "blue", banDuration, blueBanHandler)
+
+	// wait player
+	cur := model.NewStage(game.NewStageId(), "等待玩家加入", "等待玩家加入", model.START, 0, waitPlayerHandler)
 	service.LinkStages(cur, game.Stage0)
+	// blue ban 1
+	cur, pre := model.NewStage(game.NewStageId(), "蓝方禁用1", "蓝方禁用1次", "blue", banDuration, blueBanHandler), cur
+	service.LinkStages(cur, pre)
 	// red ban 1
-	cur, pre := model.NewStage(game.NewStageId(), "红方禁用1", "红方禁用1次", "red", banDuration, redBanHandler), cur
+	cur, pre = model.NewStage(game.NewStageId(), "红方禁用1", "红方禁用1次", "red", banDuration, redBanHandler), cur
 	service.LinkStages(cur, pre)
 	// blue pick 1
 	cur, pre = model.NewStage(game.NewStageId(), "蓝方选人1", "蓝方选人1次", "blue", pickDuration, bluePickHandler), cur
