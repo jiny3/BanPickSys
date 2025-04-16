@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jiny3/BanPickSys/game"
 	"github.com/jiny3/BanPickSys/pkg"
 	"github.com/jiny3/BanPickSys/service"
 )
@@ -17,13 +18,13 @@ func SetupRouter(r *gin.Engine) {
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
 	})
 	r.GET("/bp", func(c *gin.Context) {
-		// 读取 game name
-		game := c.Query("game")
-		if game == "" {
-			game = "豹豹碰碰大作战"
+		// 读取 gameName name
+		gameName := c.Query("game")
+		if gameName == "" {
+			gameName = "豹豹碰碰大作战"
 		}
 		// 启动 banpick
-		bpID, err := service.NewGame(game, GameHandler[game])
+		bpID, err := service.NewGame(gameName, game.Handlers[gameName])
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

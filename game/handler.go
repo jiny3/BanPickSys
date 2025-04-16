@@ -1,4 +1,4 @@
-package api
+package game
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// GameHandler 注册
-var GameHandler = map[string]service.GameInitFunc{
+// Handlers 注册
+var Handlers = map[string]service.GameInitFunc{
 	"豹豹碰碰大作战": service.GameInitFunc(baobaoStages),
 }
 
