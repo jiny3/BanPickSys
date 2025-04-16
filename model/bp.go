@@ -15,9 +15,10 @@ type BP struct {
 	Stage0    *Stage             `json:"stage0"`
 	Entries   []Entry            `json:"entries"`
 	Players   map[string]*Player `json:"players"`
+	Results   map[string]Player  `json:"results"`
 	PlayerCap int                `json:"player_cap"`
 
-	Send       []chan *BP `json:"-"`
+	Send       []chan any `json:"-"`
 	stageIndex int64
 	mu         sync.Mutex
 }
@@ -31,7 +32,8 @@ func NewBP(name string, entries []Entry) BP {
 		}),
 		Entries: entries,
 		Players: make(map[string]*Player),
-		Send:    []chan *BP{},
+		Results: make(map[string]Player),
+		Send:    []chan any{},
 	}
 }
 
@@ -46,29 +48,42 @@ func (g *BP) SetStage0(s *Stage) {
 	g.Stage0 = s
 }
 
-func (g *BP) Join(player Player, role string) error {
+func (g *BP) Join(player *Player, role string) error {
+	if player == nil {
+		return fmt.Errorf("非法id")
+	}
 	if len(g.Players) >= g.PlayerCap {
 		return fmt.Errorf("玩家人数已满")
 	}
 	if p, ok := g.Players[role]; ok {
-		return fmt.Errorf("角色已被占用")
-	} else if p.ID == player.ID {
-		return fmt.Errorf("玩家已在游戏中")
+		if p.ID != player.ID {
+			return fmt.Errorf("%s已被占用", role)
+		}
+		return nil
 	}
-	g.Players[role] = &player
+	g.Players[role] = player
+	if p, ok := g.Results[role]; ok {
+		player.Picked = p.Picked
+		player.Banned = p.Banned
+		g.Results[role] = *player
+	}
 	return nil
 }
 
-func (g *BP) Leave(p Player) error {
-	for role, player := range g.Players {
-		if player.ID == p.ID {
+func (g *BP) Leave(player *Player) error {
+	if player == nil {
+		return fmt.Errorf("非法id")
+	}
+	for role, p := range g.Players {
+		if p.ID == player.ID {
 			delete(g.Players, role)
+			logrus.Debugf("玩家[%s]离开BP", player.Name)
 			return nil
 		}
 	}
-	return fmt.Errorf("玩家不存在")
+	return nil
 }
 
-func (g *BP) Result() map[string]*Player {
-	return g.Players
+func (g *BP) Result() map[string]Player {
+	return g.Results
 }

@@ -42,7 +42,7 @@ func GetEntries(id int64) ([]model.Entry, error) {
 	return game.Entries, nil
 }
 
-func GetResult(id int64) (map[string]*model.Player, error) {
+func GetResult(id int64) (map[string]model.Player, error) {
 	game, err := GetBP(id)
 	if err != nil {
 		return nil, err
@@ -56,6 +56,35 @@ func GetResult(id int64) (map[string]*model.Player, error) {
 	return game.Result(), nil
 }
 
+func Join(gameID, playerID int64, role string) error {
+	game, err := GetBP(gameID)
+	if err != nil {
+		return err
+	}
+	for i := range game.Players {
+		if game.Players[i].ID == playerID {
+			return fmt.Errorf("player[%d] already joined", playerID)
+		}
+	}
+	err = game.Join(Players[playerID], role)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func Leave(gameID, playerID int64) error {
+	game, err := GetBP(gameID)
+	if err != nil {
+		return err
+	}
+	err = game.Leave(Players[playerID])
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func SendEvent(gameID, playerID, entryID int64) error {
 	game, err := GetBP(gameID)
 	if err != nil {
@@ -64,8 +93,7 @@ func SendEvent(gameID, playerID, entryID int64) error {
 	if game.Stage0.ID == 0 {
 		return fmt.Errorf("game[%d] not started", gameID)
 	}
-	// TODO: 这里需要判断是否是当前玩家
-	if game.Stage0.Role == "" {
+	if game.Players[game.Stage0.Role] != Players[playerID] {
 		return fmt.Errorf("player[%d] not available", playerID)
 	}
 	for i := range game.Entries {
