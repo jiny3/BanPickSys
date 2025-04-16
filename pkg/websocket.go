@@ -9,12 +9,14 @@ import (
 
 var WsUpgrade = websocket.Upgrader{
 	HandshakeTimeout: time.Second * 3,
-	ReadBufferSize:   1024,
-	WriteBufferSize:  1024,
+	ReadBufferSize:   256,
+	WriteBufferSize:  256,
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
 }
 
 type WsEvent struct {
+	Type string `json:"type"`
+	Data any    `json:"data"`
 }
