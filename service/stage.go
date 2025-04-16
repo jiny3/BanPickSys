@@ -20,9 +20,12 @@ func RunState(s *model.Stage, game *model.Game) {
 	defer close(done)
 
 	s.Handle(done)
+	for _, s := range game.Send {
+		s <- game
+	}
 	select {
 	case <-done:
-	case <-time.After(time.Until(s.StartTime.Add(s.Duration))):
+	case <-time.After(time.Until(s.Start.Add(s.Duration))):
 	}
 
 	// wakeup next stages

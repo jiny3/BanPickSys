@@ -135,7 +135,7 @@ func GetResult(id int64) ([]model.Player, error) {
 	if game.Stage0.ID == 0 {
 		return nil, fmt.Errorf("game[%d] not started", id)
 	}
-	if game.Stage0.AvailablePlayer.ID != 0 {
+	if game.Stage0.Player0.ID != 0 {
 		return nil, fmt.Errorf("game[%d] not finished", id)
 	}
 	return game.Result(), nil
@@ -149,7 +149,7 @@ func SendEvent(gameID, playerID, entryID int64) error {
 	if game.Stage0.ID == 0 {
 		return fmt.Errorf("game[%d] not started", gameID)
 	}
-	if game.Stage0.AvailablePlayer.ID != playerID {
+	if game.Stage0.Player0.ID != playerID {
 		return fmt.Errorf("player[%d] not available", playerID)
 	}
 	for i := range game.Entries {

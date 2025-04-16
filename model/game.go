@@ -9,12 +9,14 @@ import (
 )
 
 type Game struct {
-	ID         int64    `json:"id"`
-	Stage0     *Stage   `json:"stage0"`
-	Entries    []Entry  `json:"entries"`
-	Players    []Player `json:"players"`
+	ID      int64    `json:"id"`
+	Stage0  *Stage   `json:"stage0"`
+	Entries []Entry  `json:"entries"`
+	Players []Player `json:"players"`
+
+	Send       []chan *Game `json:"-"`
 	stageIndex int64
-	mu         sync.Mutex `json:"-"`
+	mu         sync.Mutex
 }
 
 func NewGame(name string, entries []Entry, players []Player) Game {
@@ -26,6 +28,7 @@ func NewGame(name string, entries []Entry, players []Player) Game {
 		}),
 		Entries: entries,
 		Players: players,
+		Send:    []chan *Game{},
 	}
 }
 
